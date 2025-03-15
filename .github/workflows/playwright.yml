@@ -1,0 +1,57 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *'  # Roda às 08:00 UTC
+    - cron: '0 19 * * *'  # Roda às 19:00 UTC
+
+jobs:
+  e2e-tests:
+    timeout-minutes: 1260
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get Code
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js (versão LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*  # Usa a versão LTS mais recente do Node.js
+
+      - name: Instalar dependências
+        run: |
+          npm ci
+          npm install playwright@latest --save-dev  # Instala a versão mais recente do Playwright
+
+      - name: Instalar navegadores do Playwright
+        run: npx playwright install --with-deps
+
+      - name: Rodar testes E2E do Playwright
+        run: npx playwright test
+
+    # ✅ Separando os uploads de relatórios e vídeos corretamente:
+      # Publicar o relatório HTML (se aplicável)
+      - name: Publicar Relatório HTML
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/  # Caminho onde o Playwright gera o relatório
+          retention-days: 30  # Mantém os relatórios por 30 dias
+
+      # Publicar os vídeos dos testes (se aplicável)
+      - name: Publicar Vídeos dos Testes
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-videos
+          path: playwright/videos/  # Caminho onde o Playwright salva os vídeos
+          retention-days: 30  # Mantém os vídeos por 30 dias
